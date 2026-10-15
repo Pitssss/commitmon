@@ -1,13 +1,13 @@
 {
-  "name": "commitmon",
-  "displayName": "CommitMon",
+  "name": "catchemall",
+  "displayName": "Catchemall",
   "description": "Git commit monitor and tracker for Antigravity & VS Code",
   "version": "0.0.1",
-  "publisher": "commitmon-dev",
+  "publisher": "catchemall-dev",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/commitmon"
+    "url": "https://github.com/example/catchemall"
   },
   "engines": {
     "vscode": "^1.107.0"
@@ -31,7 +31,11 @@
       },
       {
         "command": "commitmon.setGithubToken",
-        "title": "CommitMon: Set GitHub Token (Fallback)"
+        "title": "CommitMon: Connect GitHub Account"
+      },
+      {
+        "command": "commitmon.clearGithubToken",
+        "title": "CommitMon: Disconnect GitHub Account"
       }
     ]
   },
