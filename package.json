@@ -1,0 +1,49 @@
+{
+  "name": "commitmon",
+  "displayName": "CommitMon",
+  "description": "Git commit monitor and tracker for Antigravity & VS Code",
+  "version": "0.0.1",
+  "publisher": "commitmon-dev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/commitmon"
+  },
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "commitmon.start",
+        "title": "CommitMon: Start Monitoring"
+      },
+      {
+        "command": "commitmon.showStatus",
+        "title": "CommitMon: Show Commit Summary"
+      },
+      {
+        "command": "commitmon.setGithubToken",
+        "title": "CommitMon: Set GitHub Token (Fallback)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.107.0",
+    "typescript": "^5.4.0"
+  }
+}
