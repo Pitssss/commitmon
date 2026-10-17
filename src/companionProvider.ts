@@ -866,20 +866,16 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       z-index: 3;
     }
 
-    .bg-layer {
+    #bgCanvas {
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: url('${bgUri}');
-      background-size: cover;
-      background-position: center bottom;
+      z-index: 0;
       image-rendering: pixelated;
       transition: filter 0.5s ease;
     }
 
-    .anti-gravity-active .bg-layer {
+    .anti-gravity-active #bgCanvas {
       filter: hue-rotate(180deg) saturate(1.4);
     }
 
@@ -1037,81 +1033,6 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       transition: transform 0.08s ease-out, opacity 0.08s ease-out;
     }
 
-    /* Foreground Scenery Layer (z-index: 6 occludes Pokémon behind trees!) */
-    .foreground-scenery {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 6; /* In front of #petWrapper (z-index: 4) */
-      overflow: hidden;
-    }
-
-    .fg-tree {
-      position: absolute;
-      bottom: -2px;
-      pointer-events: auto;
-      cursor: pointer;
-      transform-origin: bottom center;
-      transition: transform 0.25s ease-out;
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
-    }
-
-    .fg-tree:hover {
-      transform: scale(1.03);
-    }
-
-    .fg-tree-left {
-      left: -8px;
-      width: 98px;
-      height: 160px;
-    }
-
-    .fg-tree-right {
-      right: -8px;
-      width: 115px;
-      height: 175px;
-    }
-
-    .pixel-tree-svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-      shape-rendering: crispEdges;
-    }
-
-    .tree-rustle {
-      animation: treeRustleAnim 0.6s ease-in-out;
-    }
-
-    @keyframes treeRustleAnim {
-      0%, 100% { transform: rotate(0deg); }
-      25% { transform: rotate(-1.5deg) scale(1.02); }
-      75% { transform: rotate(1.2deg); }
-    }
-
-    /* Foreground snow bank along bottom edge */
-    .fg-snowbank-left {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 85px;
-      height: 22px;
-      background: radial-gradient(ellipse at bottom left, rgba(241, 245, 249, 0.95) 0%, rgba(226, 232, 240, 0.7) 60%, transparent 100%);
-      pointer-events: none;
-    }
-
-    .fg-snowbank-right {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 95px;
-      height: 26px;
-      background: radial-gradient(ellipse at bottom right, rgba(241, 245, 249, 0.95) 0%, rgba(226, 232, 240, 0.7) 60%, transparent 100%);
-      pointer-events: none;
-    }
 
     /* Tiny snow puff particles when walking */
     .snow-step-puff {
@@ -2322,7 +2243,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
   <!-- 1. GBA Viewport Stage -->
   <div class="viewport-card" id="viewportCard">
-    <div class="bg-layer"></div>
+    <canvas id="bgCanvas" style="position:absolute;left:0;top:0;z-index:0;image-rendering:pixelated"></canvas>
     <div class="sky-aurora"></div>
     <div class="moon-glow"></div>
     <div class="stars-layer" id="starsLayer"></div>
@@ -2356,83 +2277,11 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
     <!-- Pet Movement Stage -->
     <div class="pet-stage" id="petStage">
-      <div id="petWrapper" title="Click to interact! Drag in Anti-Gravity!">
+      <div id="petWrapper" style="${state.isEggHatched ? 'display:none;' : ''}" title="Click to interact! Drag in Anti-Gravity!">
         <div id="petShadow"></div>
         <!-- Dynamically rendered sprite or Egg SVG -->
         <div id="petSpriteContainer"></div>
       </div>
-    </div>
-
-    <!-- Foreground Scenery Layer (z-index: 6 occludes Pokémon when walking into/behind trees!) -->
-    <div class="foreground-scenery" id="foregroundScenery">
-      <div class="fg-tree fg-tree-left" id="fgTreeLeft" title="Click to rustle the snowy pine tree!">
-        <svg viewBox="0 0 95 160" class="pixel-tree-svg" preserveAspectRatio="none">
-          <!-- Trunk -->
-          <rect x="38" y="118" width="18" height="42" fill="#1f161c"/>
-          <rect x="44" y="118" width="8" height="42" fill="#33222a"/>
-          <!-- Base Snow Mound -->
-          <path d="M 8 156 C 24 148, 68 148, 88 156 C 94 158, 94 160, 2 160 Z" fill="#5a6b8e"/>
-          <path d="M 18 152 C 32 147, 60 147, 76 152 Z" fill="#dce5f8"/>
-          <!-- Tier 4 (Bottom) Needles & Snow -->
-          <polygon points="47,68 4,124 28,124 14,136 82,136 68,124 92,124" fill="#0c121e"/>
-          <polygon points="47,72 8,122 28,122 18,132 78,132 68,122 88,122" fill="#151e30"/>
-          <polygon points="47,76 20,116 74,116" fill="#222f49"/>
-          <path d="M 47,70 L 10,120 L 24,115 L 34,120 L 47,108 L 60,120 L 70,115 L 84,120 Z" fill="#5d6e91"/>
-          <path d="M 47,68 L 12,118 L 24,113 L 34,118 L 47,106 L 60,118 L 70,113 L 82,118 Z" fill="#dee6f8"/>
-          <!-- Tier 3 Needles & Snow -->
-          <polygon points="47,40 12,88 30,88 20,98 76,98 66,88 84,88" fill="#0c121e"/>
-          <polygon points="47,44 16,86 30,86 24,94 72,94 66,86 80,86" fill="#151e30"/>
-          <polygon points="47,48 24,82 70,82" fill="#222f49"/>
-          <path d="M 47,42 L 14,86 L 26,82 L 36,86 L 47,76 L 58,86 L 68,82 L 80,86 Z" fill="#5d6e91"/>
-          <path d="M 47,40 L 16,84 L 26,80 L 36,84 L 47,74 L 58,84 L 68,80 L 78,84 Z" fill="#dee6f8"/>
-          <!-- Tier 2 Needles & Snow -->
-          <polygon points="47,18 22,58 34,58 26,66 70,66 62,58 74,58" fill="#0c121e"/>
-          <polygon points="47,22 26,56 68,56" fill="#151e30"/>
-          <polygon points="47,26 32,52 62,52" fill="#222f49"/>
-          <path d="M 47,20 L 24,56 L 34,52 L 47,58 L 60,52 L 70,56 Z" fill="#5d6e91"/>
-          <path d="M 47,18 L 26,54 L 34,50 L 47,56 L 60,50 L 68,54 Z" fill="#dee6f8"/>
-          <!-- Tier 1 Crown Peak -->
-          <polygon points="47,2 32,28 40,28 36,34 58,34 54,28 62,28" fill="#0c121e"/>
-          <polygon points="47,6 36,26 58,26" fill="#151e30"/>
-          <path d="M 47,2 L 32,28 L 40,24 L 47,30 L 54,24 L 62,28 Z" fill="#8fa1c4"/>
-          <path d="M 47,0 L 34,26 L 40,22 L 47,28 L 54,22 L 60,26 Z" fill="#ffffff"/>
-        </svg>
-      </div>
-      <div class="fg-tree fg-tree-right" id="fgTreeRight" title="Click to rustle the snowy pine tree!">
-        <svg viewBox="0 0 115 175" class="pixel-tree-svg" preserveAspectRatio="none">
-          <!-- Trunk -->
-          <rect x="46" y="128" width="22" height="47" fill="#1f161c"/>
-          <rect x="52" y="128" width="10" height="47" fill="#33222a"/>
-          <!-- Base Snow Mound -->
-          <path d="M 12 168 C 32 158, 86 158, 108 168 C 114 171, 114 175, 4 175 Z" fill="#5a6b8e"/>
-          <path d="M 24 163 C 42 157, 78 157, 96 163 Z" fill="#dce5f8"/>
-          <!-- Tier 4 (Bottom) Needles & Snow -->
-          <polygon points="57,75 6,134 34,134 18,148 98,148 82,134 110,134" fill="#0c121e"/>
-          <polygon points="57,80 12,132 34,132 24,142 92,142 82,132 104,132" fill="#151e30"/>
-          <polygon points="57,85 26,126 88,126" fill="#222f49"/>
-          <path d="M 57,78 L 12,130 L 28,124 L 40,130 L 57,116 L 74,130 L 86,124 L 102,130 Z" fill="#5d6e91"/>
-          <path d="M 57,75 L 14,128 L 28,122 L 40,128 L 57,114 L 74,128 L 86,122 L 100,128 Z" fill="#dee6f8"/>
-          <!-- Tier 3 Needles & Snow -->
-          <polygon points="57,44 14,96 36,96 24,108 92,108 80,96 102,96" fill="#0c121e"/>
-          <polygon points="57,49 20,94 36,94 28,102 88,102 80,94 96,94" fill="#151e30"/>
-          <polygon points="57,54 30,90 84,90" fill="#222f49"/>
-          <path d="M 57,47 L 16,94 L 30,88 L 42,94 L 57,82 L 72,94 L 84,88 L 98,94 Z" fill="#5d6e91"/>
-          <path d="M 57,44 L 18,92 L 30,86 L 42,92 L 57,80 L 72,92 L 84,86 L 96,92 Z" fill="#dee6f8"/>
-          <!-- Tier 2 Needles & Snow -->
-          <polygon points="57,20 26,64 42,64 32,74 84,74 74,64 90,64" fill="#0c121e"/>
-          <polygon points="57,25 32,62 82,62" fill="#151e30"/>
-          <polygon points="57,30 38,58 76,58" fill="#222f49"/>
-          <path d="M 57,23 L 28,62 L 40,58 L 57,64 L 74,58 L 86,62 Z" fill="#5d6e91"/>
-          <path d="M 57,20 L 30,60 L 40,56 L 57,62 L 74,56 L 84,60 Z" fill="#dee6f8"/>
-          <!-- Tier 1 Crown Peak -->
-          <polygon points="57,2 38,32 48,32 42,38 72,38 66,32 76,32" fill="#0c121e"/>
-          <polygon points="57,6 44,30 70,30" fill="#151e30"/>
-          <path d="M 57,2 L 38,32 L 48,27 L 57,34 L 66,27 L 76,32 Z" fill="#8fa1c4"/>
-          <path d="M 57,0 L 40,30 L 48,25 L 57,32 L 66,25 L 74,30 Z" fill="#ffffff"/>
-        </svg>
-      </div>
-      <div class="fg-snowbank-left"></div>
-      <div class="fg-snowbank-right"></div>
     </div>
   </div>
 
@@ -2574,6 +2423,87 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     const soundLabel = document.getElementById('soundLabel');
     const resetBtn = document.getElementById('resetBtn');
     const snowCanvas = document.getElementById('snowCanvas');
+    const bgCanvas = document.getElementById('bgCanvas');
+
+    const PX = 3; // size of one "8-bit pixel" on screen
+
+    function rng(seed) {
+      return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    }
+
+    // Walkable lane, as "bottom" offsets in CSS px. Trees never reach this area.
+    function getLane(stageH) {
+      return { min: Math.round(stageH * 0.06), max: Math.round(stageH * 0.24) };
+    }
+
+    function pine(g, x, base, s, dark, mid) {
+      g.fillStyle = '#3b2a24'; g.fillRect(x - 1, base - 2, 2, 2);          // trunk
+      const th = Math.max(4, Math.round(s * 0.55));
+      for (let t = 0; t < 3; t++) {
+        const hw = Math.max(2, Math.round(s * (0.5 - t * 0.12)));
+        const bottom = base - 2 - Math.round(t * th * 0.7);
+        for (let row = 0; row < th; row++) {
+          const half = Math.round(hw * (row + 1) / th);
+          const y = bottom - th + row;
+          g.fillStyle = dark; g.fillRect(x - half, y, half * 2 + 1, 1);
+          g.fillStyle = mid;  g.fillRect(x - half, y, Math.max(1, half >> 1), 1);   // lit left side
+          if (row < 2) { g.fillStyle = '#e8f1fb'; g.fillRect(x - Math.min(half, 1), y, Math.min(half, 1) * 2 + 1, 1); } // snow cap
+        }
+      }
+    }
+
+    function drawBackground(canvas, stageW, stageH) {
+      if (!canvas) return;
+      const w = Math.ceil(stageW / PX), h = Math.ceil(stageH / PX);
+      canvas.width = w; canvas.height = h;
+      canvas.style.width = stageW + 'px'; canvas.style.height = stageH + 'px';
+      const g = canvas.getContext('2d');
+      if (!g) return;
+      const r = rng(7);
+      const horizon = Math.floor(h * 0.45);
+      const lane = getLane(stageH);
+      const laneTop = h - Math.round(lane.max / PX) - 2;
+      const laneBot = h - Math.round(lane.min / PX) + 2;
+
+      // sky bands
+      ['#0b1026', '#121a3a', '#1b2650', '#27346a'].forEach(function (c, i) {
+        g.fillStyle = c; g.fillRect(0, Math.floor(i * horizon / 4), w, Math.ceil(horizon / 4) + 1);
+      });
+      g.fillStyle = '#ffffff';
+      for (let i = 0; i < 28; i++) g.fillRect((r() * w) | 0, (r() * horizon * 0.55) | 0, 1, 1);
+
+      // mountains
+      g.fillStyle = '#2d2a52';
+      for (let x = 0; x < w; x++) {
+        const m = horizon - 6 - Math.abs(Math.sin(x * 0.05 + 1) * 14 + Math.sin(x * 0.13) * 5);
+        g.fillRect(x, Math.floor(m), 1, horizon - Math.floor(m));
+      }
+
+      // ground (snow)
+      g.fillStyle = '#c9d8ea'; g.fillRect(0, horizon, w, h - horizon);
+      g.fillStyle = '#b6c8de'; g.fillRect(0, horizon, w, 2);
+
+      // tree rows: bases stay ABOVE the lane, so nothing stands in the walking path
+      for (let x = 4; x < w; x += 9 + ((r() * 6) | 0))  pine(g, x, horizon + 1, 14 + ((r() * 5) | 0), '#12302f', '#1c4a45');
+      for (let x = 0; x < w; x += 12 + ((r() * 8) | 0)) pine(g, x, horizon + 6, 18 + ((r() * 6) | 0), '#183d3a', '#255c55');
+
+      // path, with dithered edges
+      g.fillStyle = '#8d93a8'; g.fillRect(0, laneTop, w, laneBot - laneTop);
+      g.fillStyle = '#a3a9bd';
+      for (let x = 0; x < w; x++) { if ((x & 1) === 0) g.fillRect(x, laneTop, 1, 1); if (((x >> 1) & 1) === 1) g.fillRect(x, laneBot - 1, 1, 1); }
+      g.fillStyle = '#767c92';
+      for (let i = 0; i < w / 6; i++) g.fillRect((r() * w) | 0, laneTop + 2 + ((r() * (laneBot - laneTop - 4)) | 0), 2, 1);
+
+      // snow specks
+      g.fillStyle = '#ffffff';
+      for (let i = 0; i < 25; i++) g.fillRect((r() * w) | 0, horizon + 3 + ((r() * (h - horizon - 3)) | 0), 1, 1);
+    }
+
+    function redrawBg() {
+      drawBackground(bgCanvas, viewportCard.clientWidth || 300, viewportCard.clientHeight || 220);
+    }
+    redrawBg();
+    new ResizeObserver(redrawBg).observe(viewportCard);
 
     // ItsHover SVG Icons Catalog (https://www.itshover.com/icons)
     const ITSHOVER_ICONS = {
@@ -3020,10 +2950,14 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         this.idleTimer = 0;
         this.isDragging = false;
 
+        const lane = getLane(viewportCard.clientHeight || 220);
+        this.laneY = lane.min + Math.random() * (lane.max - lane.min);
+        this.targetLaneY = this.laneY;
+
         const flyingSlugs = ['charizard', 'charizard-shiny', 'togekiss', 'togetic', 'aerodactyl', 'lugia'];
         this.hasWings = flyingSlugs.includes(slug) || (isPrimary && currentState && currentState.flyMode && currentState.hasWings);
         this.flyAltitude = (this.hasWings && (Math.random() > 0.45 || (isPrimary && currentState && currentState.flyMode))) ? (22 + Math.random() * 20) : 0;
-        this.posY = this.flyAltitude;
+        this.posY = this.laneY + this.flyAltitude;
 
         this.createElement();
       }
@@ -3072,21 +3006,30 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           const dy = e.clientY - this.dragStartY;
           this.posX = this.initialX + dx;
           this.posY = Math.max(0, this.initialY - dy);
-          this.wrapper.style.left = this.posX + 'px';
-          this.wrapper.style.bottom = (this.posY + (isBottomPanel ? 8 : 22)) + 'px';
+          this.wrapper.style.left = Math.round(this.posX) + 'px';
+          this.wrapper.style.bottom = Math.round(this.posY) + 'px';
         });
 
         window.addEventListener('mouseup', () => {
           if (this.isDragging) {
             this.isDragging = false;
+            const lane = getLane(viewportCard.clientHeight || 220);
+            this.laneY = this.targetLaneY = Math.min(Math.max(this.posY, lane.min), lane.max);
           }
         });
       }
 
-      update(stageW, pathBaseY) {
+      update(stageW, lane) {
         if (this.isDragging) return;
 
         this.animTick++;
+
+        // Wander up/down the lane
+        if (this.animTick % 180 === 0 && Math.random() < 0.5) {
+          this.targetLaneY = lane.min + Math.random() * (lane.max - lane.min);
+        }
+        this.laneY += (this.targetLaneY - this.laneY) * 0.02;
+        const pathBaseY = this.laneY;
 
         let row = 8;
         let col = 0;
@@ -3158,14 +3101,16 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           if (typeof triggerTreeRustle === 'function') triggerTreeRustle('left');
         }
 
-        // Apply styles
+        // Apply styles, snap to whole pixels so sprites stay crisp:
         this.spriteEl.style.backgroundPosition = -(col * this.frameSize) + 'px ' + -(row * this.frameSize) + 'px';
-        this.wrapper.style.left = this.posX + 'px';
-        this.wrapper.style.bottom = this.posY + 'px';
+        this.wrapper.style.left = Math.round(this.posX) + 'px';
+        this.wrapper.style.bottom = Math.round(this.posY) + 'px';
+        this.wrapper.style.zIndex = String(10 + Math.round(1000 - this.posY));    // lower on screen = in front
 
         // Shadow
-        this.shadowEl.style.left = (this.posX + (this.frameSize - 28) / 2) + 'px';
-        this.shadowEl.style.bottom = (pathBaseY - 2) + 'px';
+        this.shadowEl.style.left = Math.round(this.posX + (this.frameSize - 28) / 2) + 'px';
+        this.shadowEl.style.bottom = Math.round(pathBaseY - 2) + 'px';
+        this.shadowEl.style.zIndex = String(9 + Math.round(1000 - this.posY));
         if (this.flyAltitude > 0) {
           this.shadowEl.style.opacity = '0.35';
           this.shadowEl.style.transform = 'scale(0.85)';
@@ -3219,7 +3164,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         return;
       }
 
-      if (petWrapperEl) petWrapperEl.style.display = 'none';
+      if (petWrapperEl) {
+        petWrapperEl.style.display = 'none';
+        if (petSpriteContainer) petSpriteContainer.innerHTML = '';
+      }
 
       let party = (currentState.walkingParty || []).filter(Boolean);
       if (!party.includes(currentState.activePokemonSlug)) {
@@ -3304,6 +3252,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       petWrapper.className = '';
 
       if (isEgg) {
+        petWrapper.style.display = 'flex';
         petSpriteContainer.innerHTML = renderEggSVG(currentState.eggProgress, currentState.eggRequiredCommits);
         if (currentState.isSleeping) {
           petWrapper.classList.add('sleeping');
@@ -3311,29 +3260,9 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           petWrapper.classList.add('egg-wobble');
         }
       } else {
-        const frameSize = getFrameSize(slug);
-        const spriteEl = document.createElement('div');
-        spriteEl.id = 'petSprite';
-        spriteEl.style.backgroundImage = 'url("' + SPRITES_BASE_URI + '/' + slug + '.png")';
-        spriteEl.style.width = frameSize + 'px';
-        spriteEl.style.height = frameSize + 'px';
-        spriteEl.style.backgroundSize = (frameSize * 4) + 'px ' + (frameSize * 12) + 'px';
-        spriteEl.style.imageRendering = 'pixelated';
-        spriteEl.style.transform = 'scale(2.2)';
-        spriteEl.style.transformOrigin = 'center bottom';
-        spriteEl.style.backgroundRepeat = 'no-repeat';
-
-        if (currentState.activePokemonColor === 'shiny') {
-          spriteEl.style.filter = 'hue-rotate(90deg) saturate(1.5)';
-        }
-
-        petSpriteContainer.appendChild(spriteEl);
-
-        if (currentState.isSleeping) {
-          petWrapper.classList.add('sleeping');
-        } else {
-          petWrapper.classList.add(behaviorMode);
-        }
+        // When hatched, all companions walk via Walker instances.
+        petWrapper.style.display = 'none';
+        petSpriteContainer.innerHTML = '';
       }
 
       if (currentState.antiGravity) {
@@ -3354,10 +3283,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
       const stageW = viewportCard.clientWidth || 300;
       const stageH = viewportCard.clientHeight || 220;
-      const pathBaseY = isBottomPanel ? 8 : 22;
+      const lane = getLane(stageH);
 
       if (currentState.isEggHatched && activeWalkers.length > 0) {
-        activeWalkers.forEach(w => w.update(stageW, pathBaseY));
+        activeWalkers.forEach(w => w.update(stageW, lane));
         requestAnimationFrame(animatePhysics);
         return;
       }
@@ -3365,12 +3294,12 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       if (isDragging) {
         // Handled by pointer events
       } else if (currentState.isSleeping) {
-        // Sleeping - egg or pokemon rests peacefully on the ground
+        // Sleeping - egg rests peacefully in the lane
         if (!currentState.isEggHatched) {
           posX = (stageW / 2) - 24;
-          posY = 24;
-          petWrapper.style.left = posX + 'px';
-          petWrapper.style.bottom = posY + 'px';
+          posY = Math.round((lane.min + lane.max) / 2);
+          petWrapper.style.left = Math.round(posX) + 'px';
+          petWrapper.style.bottom = Math.round(posY) + 'px';
           petWrapper.style.transform = 'rotate(14deg) scale(0.95)';
         } else {
           petWrapper.style.left = posX + 'px';
@@ -3441,14 +3370,14 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         }
       } else {
         // === STANDARD GRAVITY MODE (Grounded walk on snowy path & winged sky soaring) ===
-        const pathBaseY = Math.max(38, Math.min(54, Math.round(stageH * 0.205)));
+        const pathBaseY = Math.round((lane.min + lane.max) / 2);
 
         if (!currentState.isEggHatched) {
-          // Mystery Egg sits stably on the snowy path wobbling gently
+          // Mystery Egg sits stably in the center of the lane wobbling gently
           posX = (stageW / 2) - 24;
           posY = pathBaseY;
-          petWrapper.style.left = posX + 'px';
-          petWrapper.style.bottom = posY + 'px';
+          petWrapper.style.left = Math.round(posX) + 'px';
+          petWrapper.style.bottom = Math.round(posY) + 'px';
           petWrapper.style.transform = 'rotate(0deg)';
           petShadow.style.bottom = '-2px';
           petShadow.style.transform = 'scale(1)';
@@ -3614,15 +3543,9 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       setTimeout(() => p.remove(), 1200);
     }
 
-    // Interactive Tree Rustle & Snow Flake Dropper
+    // Interactive Tree Rustle Stub
     function triggerTreeRustle(side) {
-      const tree = document.getElementById(side === 'left' ? 'fgTreeLeft' : 'fgTreeRight');
-      if (!tree) return;
-      tree.classList.remove('tree-rustle');
-      void tree.offsetWidth;
-      tree.classList.add('tree-rustle');
-      const treeX = side === 'left' ? 32 : (viewportCard.clientWidth - 42);
-      spawnSnowPuff(treeX + (Math.random() * 20 - 10), 60 + Math.random() * 40, true);
+      // Empty stub - background trees are drawn on back canvas
     }
 
     function spawnSnowPuff(x, y, isDrop = false) {
