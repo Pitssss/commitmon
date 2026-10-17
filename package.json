@@ -2,7 +2,7 @@
   "name": "commitmon",
   "displayName": "CommitMon: Pokémon Companion",
   "description": "Virtual Pokémon companion in your Explorer sidebar that hatches, walks, levels up, and catches new Pokémon from your Git commits in a GBA snowy mountain world!",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "catchemall-dev",
   "license": "MIT",
   "repository": {

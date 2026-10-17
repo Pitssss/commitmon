@@ -2525,6 +2525,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     };
 
     const SPRITES_BASE_URI = "${spritesBaseUri}";
+    const SPRITE_PNG_URI = "${spritePngUri}";
     let currentState = INITIAL_STATE;
     let currentRoster = INITIAL_ROSTER;
     let spriteCoordsMap = INITIAL_COORDS;
@@ -2925,7 +2926,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       samurott: 48,
       torterra: 48,
       zoroark: 48,
-      zoroark_hisui: 48
+      zoroark_hisui: 48,
+      dragonite: 48,
+      mewtwo: 48,
+      rayquaza: 48
     };
 
     function getFrameSize(slug) {
@@ -3579,6 +3583,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       charmeleon: { moveName: 'Flame Burst', type: 'fire', icon: '🔥', badgeClass: 'skill-fire', cry: 'Char-meleon! 🔥', sound: 'fire' },
       charizard: { moveName: 'Fire Blast', type: 'fire', icon: '🔥', badgeClass: 'skill-fire', cry: 'ROAAARRR! 🔥', sound: 'fire' },
       'charizard-shiny': { moveName: 'Dragon Breath', type: 'dragon', icon: '🐉', badgeClass: 'skill-dragon', cry: 'ROAAARRR! 🐉', sound: 'fire' },
+      dragonite: { moveName: 'Dragon Rush', type: 'dragon', icon: '🐉', badgeClass: 'skill-dragon', cry: 'Dra-gon-ite! 🐉', sound: 'fire' },
+      mew: { moveName: 'Psychic', type: 'psychic', icon: '✨', badgeClass: 'skill-psychic', cry: 'Mewww! ✨', sound: 'psychic' },
+      mewtwo: { moveName: 'Psystrike', type: 'psychic', icon: '🔮', badgeClass: 'skill-psychic', cry: 'MEW-TWO! 🔮', sound: 'psychic' },
+      rayquaza: { moveName: 'Dragon Ascent', type: 'dragon', icon: '🐲', badgeClass: 'skill-dragon', cry: 'SKREEE-OARRR! 🐲', sound: 'thunder' },
       squirtle: { moveName: 'Water Gun', type: 'water', icon: '💧', badgeClass: 'skill-water', cry: 'Squirtle-squirt! 💧', sound: 'water' },
       wartortle: { moveName: 'Aqua Tail', type: 'water', icon: '💧', badgeClass: 'skill-water', cry: 'War-tortle! 💧', sound: 'water' },
       blastoise: { moveName: 'Hydro Pump', type: 'water', icon: '💧', badgeClass: 'skill-water', cry: 'BLAST-OISE! 💧', sound: 'water' },
@@ -3918,24 +3926,45 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
         const iconDiv = document.createElement('div');
         iconDiv.className = 'dex-icon';
+        const fSize = getFrameSize(species.slug);
         iconDiv.style.backgroundImage = 'url("' + SPRITES_BASE_URI + '/' + species.slug + '.png")';
-        iconDiv.style.backgroundPosition = '0px -256px';
-        iconDiv.style.width = '32px';
-        iconDiv.style.height = '32px';
+        iconDiv.style.backgroundPosition = '0px -' + (fSize * 8) + 'px';
+        iconDiv.style.width = fSize + 'px';
+        iconDiv.style.height = fSize + 'px';
         iconDiv.style.imageRendering = 'pixelated';
+        if (fSize > 32) {
+          iconDiv.style.transform = 'scale(' + (32 / fSize) + ')';
+          iconDiv.style.transformOrigin = 'center center';
+        }
         if (species.color === 'shiny') {
           iconDiv.style.filter = 'hue-rotate(90deg) saturate(1.5)';
         }
+
+        // Resilient fallback to pokesprite.png if direct sprite sheet ever fails
+        const testImg = new Image();
+        testImg.onerror = () => {
+          const coords = spriteCoordsMap[species.slug] || spriteCoordsMap[species.id];
+          if (coords) {
+            iconDiv.style.backgroundImage = 'url("' + SPRITE_PNG_URI + '")';
+            iconDiv.style.backgroundPosition = '-' + coords.x + 'px -' + coords.y + 'px';
+            iconDiv.style.width = '40px';
+            iconDiv.style.height = '30px';
+            iconDiv.style.transform = 'scale(0.8)';
+            iconDiv.style.transformOrigin = 'center center';
+          }
+        };
+        testImg.src = SPRITES_BASE_URI + '/' + species.slug + '.png';
+
         slot.appendChild(iconDiv);
 
         slot.addEventListener('mouseenter', () => {
           if (isUnlocked) {
-            iconDiv.style.backgroundPosition = '-32px -256px';
+            iconDiv.style.backgroundPosition = '-' + fSize + 'px -' + (fSize * 8) + 'px';
           }
         });
         slot.addEventListener('mouseleave', () => {
           if (isUnlocked) {
-            iconDiv.style.backgroundPosition = '0px -256px';
+            iconDiv.style.backgroundPosition = '0px -' + (fSize * 8) + 'px';
           }
         });
 
@@ -4231,6 +4260,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
     // Party Picker Modal & Panel Squad Controls
     const POPULAR_WALKERS = [
+      { slug: 'dragonite', name: 'Dragonite' },
+      { slug: 'mew', name: 'Mew' },
+      { slug: 'mewtwo', name: 'Mewtwo' },
+      { slug: 'rayquaza', name: 'Rayquaza' },
       { slug: 'charizard', name: 'Charizard' },
       { slug: 'blastoise', name: 'Blastoise' },
       { slug: 'swampert', name: 'Swampert' },

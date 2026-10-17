@@ -260,7 +260,7 @@ export const POKEDEX_ROSTER: PokemonSpecies[] = [
     milestoneCommits: 95,
     description: 'Sky High Pokémon. Slithers across the ozone layer with 99.999% uptime.',
     type: 'Dragon / Flying',
-    canFly: false,
+    canFly: true,
     hasWings: false
   },
   {
