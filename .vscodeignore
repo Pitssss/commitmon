@@ -1,5 +1,9 @@
 .vscode/**
 src/**
-tsconfig.json
+scratch/**
 node_modules/**
-*.map
+**/*.map
+**/*.ts
+tsconfig.json
+.gitignore
+*.vsix

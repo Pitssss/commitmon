@@ -1,33 +1,94 @@
 {
-  "name": "catchemall",
-  "displayName": "Catchemall",
-  "description": "Git commit monitor and tracker for Antigravity & VS Code",
-  "version": "0.0.1",
+  "name": "commitmon",
+  "displayName": "CommitMon: Pokémon Companion",
+  "description": "Virtual Pokémon companion in your Explorer sidebar that hatches, walks, levels up, and catches new Pokémon from your Git commits in a GBA snowy mountain world!",
+  "version": "0.1.2",
   "publisher": "catchemall-dev",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/catchemall"
+    "url": "https://github.com/Pitssss/commitmon"
   },
   "engines": {
-    "vscode": "^1.107.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:commitmon.companionView",
+    "onView:commitmon.bottomPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "commitmon-bottom-dock",
+          "title": "VS Code Pokémon",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "commitmon.companionView",
+          "name": "CommitMon: Pokémon Companion",
+          "icon": "media/icon.svg"
+        }
+      ],
+      "commitmon-bottom-dock": [
+        {
+          "type": "webview",
+          "id": "commitmon.bottomPanel",
+          "name": "VS Code Pokémon",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
     "commands": [
+      {
+        "command": "commitmon.openView",
+        "title": "CommitMon: Focus Pokémon Companion View (Sidebar)"
+      },
+      {
+        "command": "commitmon.openBottomPanel",
+        "title": "CommitMon: Focus Pokémon Walk (Bottom Panel)"
+      },
       {
         "command": "commitmon.start",
         "title": "CommitMon: Start Monitoring"
       },
       {
         "command": "commitmon.showStatus",
-        "title": "CommitMon: Show Commit Summary"
+        "title": "CommitMon: Show Companion Status"
+      },
+      {
+        "command": "commitmon.feedBerry",
+        "title": "CommitMon: Feed Berry to Companion"
+      },
+      {
+        "command": "commitmon.testCommit",
+        "title": "CommitMon: Simulate Commit (EXP & Hatch)"
+      },
+      {
+        "command": "commitmon.testPush",
+        "title": "CommitMon: Simulate Git Push (Celebration)"
+      },
+      {
+        "command": "commitmon.resetProgress",
+        "title": "CommitMon: Reset Companion Progress to Egg"
+      },
+      {
+        "command": "commitmon.openAntiGravityArena",
+        "title": "CommitMon: Open Anti-Gravity Free-Roam Arena in Editor"
+      },
+      {
+        "command": "commitmon.toggleAntiGravity",
+        "title": "CommitMon: Toggle Anti-Gravity Sideways Roam"
       },
       {
         "command": "commitmon.setGithubToken",
@@ -47,7 +108,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@types/vscode": "^1.107.0",
+    "@types/vscode": "^1.80.0",
+    "pokesprite": "^1.5.1",
     "typescript": "^5.4.0"
   }
 }

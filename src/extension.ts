@@ -1,21 +1,31 @@
 import * as vscode from 'vscode';
 import { GitExtension, API as GitAPI, Repository } from './git';
+import { CompanionViewProvider } from './companionProvider';
 
 let statusBarItem: vscode.StatusBarItem;
-let commitCountToday = 0;
+let companionProvider: CompanionViewProvider;
 let lastKnownCommitHash: string | undefined;
+let lastKnownAheadCount: number | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('CommitMon extension is now active in Antigravity!');
+  console.log('CommitMon (Catch \'Em All) extension is now active in Antigravity!');
 
-  // 1. Create Status Bar Item
+  // 1. Initialize Companion Webview Provider (Sidebar & Bottom Panel)
+  companionProvider = new CompanionViewProvider(context.extensionUri, context);
+  context.subscriptions.push(
+    companionProvider.onDidChangeState(() => updateStatusBar()),
+    vscode.window.registerWebviewViewProvider(CompanionViewProvider.viewType, companionProvider),
+    vscode.window.registerWebviewViewProvider(CompanionViewProvider.panelViewType, companionProvider)
+  );
+
+  // 2. Create Status Bar Item (clean companion summary)
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  statusBarItem.command = 'commitmon.showStatus';
+  statusBarItem.command = 'commitmon.openBottomPanel';
   context.subscriptions.push(statusBarItem);
   updateStatusBar();
   statusBarItem.show();
 
-  // 2. Initialize Git API
+  // 3. Initialize Git API
   const gitApi = await getGitAPI();
   if (gitApi) {
     setupGitWatchers(gitApi, context);
@@ -23,28 +33,42 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.showWarningMessage('CommitMon: VS Code Git extension not detected or disabled.');
   }
 
-  // 3. Register Commands
+  // 4. Register Extension Commands
+  const openViewCmd = vscode.commands.registerCommand('commitmon.openView', () => {
+    vscode.commands.executeCommand('commitmon.companionView.focus');
+  });
+
+  const openBottomPanelCmd = vscode.commands.registerCommand('commitmon.openBottomPanel', () => {
+    vscode.commands.executeCommand('commitmon.bottomPanel.focus');
+  });
+
   const startCmd = vscode.commands.registerCommand('commitmon.start', () => {
-    vscode.window.showInformationMessage('CommitMon is active and monitoring git commits.');
+    vscode.window.showInformationMessage('CommitMon: Active & tracking your Pokémon companion commits!');
+    companionProvider.syncState();
     updateStatusBar();
   });
 
   const showStatusCmd = vscode.commands.registerCommand('commitmon.showStatus', async () => {
+    const state = companionProvider.getState();
     const token = await context.secrets.get('commitmon.ghToken');
     const ghUser = context.globalState.get<string>('commitmon.ghUser');
     const authStatus = token ? `Connected (@${ghUser || 'GitHub User'})` : 'Not Connected';
 
-    const message = `CommitMon Status:\n- Today's commits tracked: ${commitCountToday}\n- Last commit: ${lastKnownCommitHash?.substring(0, 7) || 'None'}\n- GitHub: ${authStatus}`;
+    const message = `CommitMon Companion:\n- Companion: ${state.activePokemonName} (Lv. ${state.level})\n- Total Commits: ${state.totalCommits}\n- Caught in Pokédex: ${state.unlockedIds.length} Pokémon\n- GitHub: ${authStatus}`;
 
     if (token) {
-      const choice = await vscode.window.showInformationMessage(message, 'Disconnect GitHub');
+      const choice = await vscode.window.showInformationMessage(message, 'Disconnect GitHub', 'Open Companion');
       if (choice === 'Disconnect GitHub') {
         await vscode.commands.executeCommand('commitmon.clearGithubToken');
+      } else if (choice === 'Open Companion') {
+        vscode.commands.executeCommand('commitmon.openView');
       }
     } else {
-      const choice = await vscode.window.showInformationMessage(message, 'Connect GitHub');
+      const choice = await vscode.window.showInformationMessage(message, 'Connect GitHub', 'Open Companion');
       if (choice === 'Connect GitHub') {
         await vscode.commands.executeCommand('commitmon.setGithubToken');
+      } else if (choice === 'Open Companion') {
+        vscode.commands.executeCommand('commitmon.openView');
       }
     }
   });
@@ -57,7 +81,49 @@ export async function activate(context: vscode.ExtensionContext) {
     await disconnectGitHubAuth(context);
   });
 
-  context.subscriptions.push(startCmd, showStatusCmd, setGithubTokenCmd, clearGithubTokenCmd);
+  const testCommitCmd = vscode.commands.registerCommand('commitmon.testCommit', async () => {
+    await companionProvider.onCommitDetected('sim-' + Math.random().toString(36).substring(2, 7));
+    updateStatusBar();
+  });
+
+  const testPushCmd = vscode.commands.registerCommand('commitmon.testPush', async () => {
+    await companionProvider.onPushDetected();
+    updateStatusBar();
+  });
+
+  const feedBerryCmd = vscode.commands.registerCommand('commitmon.feedBerry', async () => {
+    await companionProvider.feedBerry();
+    updateStatusBar();
+  });
+
+  const resetProgressCmd = vscode.commands.registerCommand('commitmon.resetProgress', async () => {
+    await companionProvider.resetProgress();
+    updateStatusBar();
+  });
+
+  const openArenaCmd = vscode.commands.registerCommand('commitmon.openAntiGravityArena', () => {
+    companionProvider.openArena();
+  });
+
+  const toggleAntiGravityCmd = vscode.commands.registerCommand('commitmon.toggleAntiGravity', async () => {
+    await companionProvider.toggleAntiGravity();
+    updateStatusBar();
+  });
+
+  context.subscriptions.push(
+    openViewCmd,
+    openBottomPanelCmd,
+    openArenaCmd,
+    toggleAntiGravityCmd,
+    startCmd,
+    showStatusCmd,
+    setGithubTokenCmd,
+    clearGithubTokenCmd,
+    testCommitCmd,
+    testPushCmd,
+    feedBerryCmd,
+    resetProgressCmd
+  );
 }
 
 export function deactivate() {
@@ -93,18 +159,30 @@ function setupGitWatchers(git: GitAPI, context: vscode.ExtensionContext) {
     if (repo.state.HEAD?.commit) {
       lastKnownCommitHash = repo.state.HEAD.commit;
     }
+    if (typeof repo.state.HEAD?.ahead === 'number') {
+      lastKnownAheadCount = repo.state.HEAD.ahead;
+    }
 
-    const disposable = repo.state.onDidChange(() => {
+    const disposable = repo.state.onDidChange(async () => {
       const currentCommit = repo.state.HEAD?.commit;
+      const currentAhead = repo.state.HEAD?.ahead ?? 0;
+
+      // 1. Detect New Git Commit
       if (currentCommit && currentCommit !== lastKnownCommitHash) {
         lastKnownCommitHash = currentCommit;
-        commitCountToday += 1;
+        await companionProvider.onCommitDetected(currentCommit);
         updateStatusBar();
-        vscode.window.showInformationMessage(
-          `CommitMon: New commit detected (${currentCommit.substring(0, 7)})!`
-        );
       }
+
+      // 2. Detect Git Push to Remote (ahead drops from >0 to 0)
+      if (lastKnownAheadCount !== undefined && lastKnownAheadCount > 0 && currentAhead === 0) {
+        await companionProvider.onPushDetected();
+        updateStatusBar();
+      }
+
+      lastKnownAheadCount = currentAhead;
     });
+
     context.subscriptions.push(disposable);
   };
 
@@ -122,15 +200,19 @@ function setupGitWatchers(git: GitAPI, context: vscode.ExtensionContext) {
 }
 
 function updateStatusBar() {
-  statusBarItem.text = `$(git-commit) CommitMon: ${commitCountToday} today`;
-  statusBarItem.tooltip = `CommitMon: ${commitCountToday} commit(s) recorded in this session. Click for details.`;
+  if (!statusBarItem || !companionProvider) return;
+  const state = companionProvider.getState();
+  const name = state.activePokemonName;
+  const levelText = state.isEggHatched ? `Lv.${state.level}` : 'Egg';
+  const modeIcon = state.antiGravity ? '$(rocket)' : (state.flyMode ? '$(zap)' : '$(heart)');
+  statusBarItem.text = `${modeIcon} ${name} (${levelText}) | $(git-commit) ${state.totalCommits}`;
+  statusBarItem.tooltip = `CommitMon: ${name} (${levelText})\nTotal Commits: ${state.totalCommits}\nAnti-Gravity: ${state.antiGravity ? 'ON (Sideways/Zero-G)' : 'OFF'}\nClick to open companion sidebar.`;
 }
 
 /**
- * Step 6: GitHub Authentication with PAT Fallback & Token Validation
+ * GitHub Authentication with PAT Fallback & Token Validation
  */
 async function configureGitHubAuth(context: vscode.ExtensionContext): Promise<string | undefined> {
-  // 1. Try standard VS Code / Antigravity GitHub auth session
   try {
     const session = await vscode.authentication.getSession('github', ['read:user'], {
       createIfNone: true
@@ -147,7 +229,6 @@ async function configureGitHubAuth(context: vscode.ExtensionContext): Promise<st
     console.warn('Standard GitHub OAuth provider unavailable in this environment, using PAT fallback:', err);
   }
 
-  // 2. Fallback: Prompt user for Personal Access Token (PAT)
   const token = await vscode.window.showInputBox({
     title: 'CommitMon: GitHub Authentication',
     prompt: 'Paste a GitHub Personal Access Token (fine-grained or classic with read:user scope)',
@@ -161,8 +242,6 @@ async function configureGitHubAuth(context: vscode.ExtensionContext): Promise<st
   }
 
   const cleanToken = token.trim();
-
-  // 3. Verify token with GitHub API
   vscode.window.showInformationMessage('CommitMon: Verifying token with GitHub...');
   const username = await fetchGitHubUsername(cleanToken);
 
@@ -202,4 +281,3 @@ async function fetchGitHubUsername(token: string): Promise<string | undefined> {
   }
   return undefined;
 }
-
