@@ -4,6 +4,7 @@ import { POKEDEX_ROSTER, POKEMON_SPRITE_COORDS, getEvolutionTarget } from './pok
 
 export class CompanionViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'commitmon.companionView';
+  public static readonly explorerViewType = 'commitmon.explorerView';
   public static readonly panelViewType = 'commitmon.bottomPanel';
   private _view?: vscode.WebviewView;
   private readonly _webviews = new Set<vscode.Webview>();
@@ -175,7 +176,18 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       if (saved.soundEnabled === undefined) saved.soundEnabled = true;
       if (saved.variant === undefined) saved.variant = 'normal';
 
-      const currentSpecies = POKEDEX_ROSTER.find((p) => p.id === saved.activePokemonId);
+      if (!saved.activePokemonSlug) {
+        saved.activePokemonSlug = saved.isEggHatched ? (saved.activePokemonId || 'pikachu') : 'egg';
+      }
+      if (!saved.activePokemonId) {
+        saved.activePokemonId = saved.activePokemonSlug;
+      }
+      if (!saved.activePokemonName) {
+        const found = POKEDEX_ROSTER.find((p) => p.slug === saved.activePokemonSlug || p.id === saved.activePokemonId);
+        saved.activePokemonName = found ? found.name : (saved.isEggHatched ? 'Pikachu' : 'Mystery Egg');
+      }
+
+      const currentSpecies = POKEDEX_ROSTER.find((p) => p.id === saved.activePokemonId || p.slug === saved.activePokemonSlug);
       saved.hasWings = !!currentSpecies?.hasWings;
       if (!saved.hasWings) {
         saved.flyMode = false;
@@ -668,11 +680,15 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       border-bottom: ${isBottomPanel ? 'none' : '2px solid var(--gba-border)'};
     }
 
-    body.bottom-panel-mode .controls-deck {
+    body.bottom-panel-mode:not(.show-controls) .controls-deck {
       display: none !important;
     }
+    body.bottom-panel-mode.show-controls .viewport-card {
+      height: 240px !important;
+      min-height: 200px !important;
+    }
     body.bottom-panel-mode .viewport-hud {
-      display: none !important;
+      display: flex;
     }
 
     /* Top Bar in Bottom Panel (matching VS Code Pokémon) */
@@ -2227,6 +2243,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       <button class="panel-btn" id="btnPartyShuffle" title="Shuffle Squad / Cheer">🔀</button>
       <button class="panel-btn" id="btnPartyReset" title="Reset to Single Companion">🗑️</button>
       <button class="panel-btn" id="btnPanelSound" title="Toggle Sound">🔊</button>
+      <button class="panel-btn" id="btnToggleDeck" title="Show / Hide Controls & Pokédex Deck">🎮 Deck</button>
     </div>
   </div>
 
@@ -2454,14 +2471,16 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
 
     function drawBackground(canvas, stageW, stageH) {
       if (!canvas) return;
-      const w = Math.ceil(stageW / PX), h = Math.ceil(stageH / PX);
+      const effectiveW = Math.max(300, stageW || 300);
+      const effectiveH = Math.max(160, stageH || 220);
+      const w = Math.ceil(effectiveW / PX), h = Math.ceil(effectiveH / PX);
       canvas.width = w; canvas.height = h;
-      canvas.style.width = stageW + 'px'; canvas.style.height = stageH + 'px';
+      canvas.style.width = effectiveW + 'px'; canvas.style.height = effectiveH + 'px';
       const g = canvas.getContext('2d');
       if (!g) return;
       const r = rng(7);
       const horizon = Math.floor(h * 0.45);
-      const lane = getLane(stageH);
+      const lane = getLane(effectiveH);
       const laneTop = h - Math.round(lane.max / PX) - 2;
       const laneBot = h - Math.round(lane.min / PX) + 2;
 
@@ -2977,10 +2996,24 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         this.spriteEl.className = 'walker-sprite';
         this.spriteEl.style.width = this.frameSize + 'px';
         this.spriteEl.style.height = this.frameSize + 'px';
-        this.spriteEl.style.backgroundImage = 'url("' + SPRITES_BASE_URI + '/' + this.slug + '.png")';
+        const spriteUrl = SPRITES_BASE_URI + '/' + this.slug + '.png';
+        this.spriteEl.style.backgroundImage = 'url("' + spriteUrl + '")';
         this.spriteEl.style.backgroundRepeat = 'no-repeat';
         this.spriteEl.style.backgroundSize = (this.frameSize * 4) + 'px ' + (this.frameSize * 12) + 'px';
         this.spriteEl.style.imageRendering = 'pixelated';
+
+        // Robust fallback: if sprite fails to load, gracefully fall back so companion never disappears!
+        const testImg = new Image();
+        testImg.onerror = () => {
+          this.spriteEl.style.backgroundImage = 'url("' + SPRITES_BASE_URI + '/pikachu.png")';
+          this.frameSize = 32;
+          this.wrapper.style.width = '32px';
+          this.wrapper.style.height = '32px';
+          this.spriteEl.style.width = '32px';
+          this.spriteEl.style.height = '32px';
+          this.spriteEl.style.backgroundSize = '128px 384px';
+        };
+        testImg.src = spriteUrl;
 
         this.shadowEl = document.createElement('div');
         this.shadowEl.className = 'walker-shadow';
@@ -2989,6 +3022,12 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         this.wrapper.appendChild(this.spriteEl);
         petStage.appendChild(this.shadowEl);
         petStage.appendChild(this.wrapper);
+
+        // Set initial positions immediately
+        this.wrapper.style.left = Math.round(this.posX) + 'px';
+        this.wrapper.style.bottom = Math.round(this.posY) + 'px';
+        this.shadowEl.style.left = Math.round(this.posX + (this.frameSize - 28) / 2) + 'px';
+        this.shadowEl.style.bottom = Math.round(this.laneY - 2) + 'px';
 
         this.wrapper.addEventListener('click', (e) => {
           if (this.isDragging) return;
@@ -3174,8 +3213,9 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       }
 
       let party = (currentState.walkingParty || []).filter(Boolean);
-      if (!party.includes(currentState.activePokemonSlug)) {
-        party = [currentState.activePokemonSlug];
+      const activeSlug = currentState.activePokemonSlug || (currentState.isEggHatched ? 'pikachu' : 'egg');
+      if (party.length === 0 || !party.includes(activeSlug)) {
+        party = [activeSlug];
       }
       party = party.slice(0, 6);
 
@@ -3289,10 +3329,15 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       const stageH = viewportCard.clientHeight || 220;
       const lane = getLane(stageH);
 
-      if (currentState.isEggHatched && activeWalkers.length > 0) {
-        activeWalkers.forEach(w => w.update(stageW, lane));
-        requestAnimationFrame(animatePhysics);
-        return;
+      if (currentState.isEggHatched) {
+        if (activeWalkers.length === 0) {
+          syncWalkers();
+        }
+        if (activeWalkers.length > 0) {
+          activeWalkers.forEach(w => w.update(stageW, lane));
+          requestAnimationFrame(animatePhysics);
+          return;
+        }
       }
 
       if (isDragging) {
@@ -4377,6 +4422,21 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         isMuted = !isMuted;
         btnPanelSound.innerText = isMuted ? '🔇' : '🔊';
         vscode.postMessage({ type: 'TOGGLE_SOUND', enabled: !isMuted });
+      });
+    }
+
+    const btnToggleDeck = document.getElementById('btnToggleDeck');
+    if (btnToggleDeck) {
+      btnToggleDeck.addEventListener('click', () => {
+        document.body.classList.toggle('show-controls');
+        const isShowing = document.body.classList.contains('show-controls');
+        btnToggleDeck.classList.toggle('active', isShowing);
+        if (isShowing) {
+          viewportCard.style.height = '240px';
+        } else {
+          viewportCard.style.height = 'calc(100vh - 36px)';
+        }
+        redrawBg();
       });
     }
 

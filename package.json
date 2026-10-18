@@ -2,7 +2,7 @@
   "name": "commitmon",
   "displayName": "CommitMon: Pokémon Companion",
   "description": "Virtual Pokémon companion in your Explorer sidebar that hatches, walks, levels up, and catches new Pokémon from your Git commits in a GBA snowy mountain world!",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "catchemall-dev",
   "license": "MIT",
   "repository": {
@@ -18,11 +18,19 @@
   "activationEvents": [
     "onStartupFinished",
     "onView:commitmon.companionView",
+    "onView:commitmon.explorerView",
     "onView:commitmon.bottomPanel"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "commitmon",
+          "title": "CommitMon: Pokémon Companion",
+          "icon": "media/icon.svg"
+        }
+      ],
       "panel": [
         {
           "id": "commitmon-bottom-dock",
@@ -32,10 +40,18 @@
       ]
     },
     "views": {
-      "explorer": [
+      "commitmon": [
         {
           "type": "webview",
           "id": "commitmon.companionView",
+          "name": "CommitMon: Pokémon Companion",
+          "icon": "media/icon.svg"
+        }
+      ],
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "commitmon.explorerView",
           "name": "CommitMon: Pokémon Companion",
           "icon": "media/icon.svg"
         }

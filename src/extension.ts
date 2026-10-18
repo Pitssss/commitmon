@@ -15,6 +15,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     companionProvider.onDidChangeState(() => updateStatusBar()),
     vscode.window.registerWebviewViewProvider(CompanionViewProvider.viewType, companionProvider),
+    vscode.window.registerWebviewViewProvider(CompanionViewProvider.explorerViewType, companionProvider),
     vscode.window.registerWebviewViewProvider(CompanionViewProvider.panelViewType, companionProvider)
   );
 
