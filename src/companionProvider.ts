@@ -1105,46 +1105,58 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       transition: filter 0.2s ease;
     }
 
-    /* Dedicated Pixel Art Mystery Egg Component */
+    /* Dedicated Authentic 16-Bit Pixel Art Mystery Egg Component */
     .pokemon-egg-container {
-      width: 40px;
-      height: 44px;
+      width: 32px;
+      height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transform: scale(1.6);
+      transform: scale(2.2);
       transform-origin: center bottom;
+      image-rendering: pixelated;
     }
 
     .pokemon-egg-svg {
-      width: 100%;
-      height: 100%;
+      width: 32px;
+      height: 32px;
       overflow: visible;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+      shape-rendering: crispEdges;
+      image-rendering: pixelated;
     }
 
     /* Egg Animations */
     .egg-wobble .pokemon-egg-container {
-      animation: eggShake 1.8s infinite ease-in-out;
+      animation: eggShake 3.4s infinite ease-in-out;
     }
 
     .egg-cracking .pokemon-egg-container {
-      animation: eggTremble 0.35s infinite ease-in-out;
+      animation: eggTremble 0.28s infinite ease-in-out;
+    }
+
+    .egg-fracture-glow {
+      animation: eggRadiancePulse 1.4s infinite ease-in-out;
+    }
+
+    @keyframes eggRadiancePulse {
+      0%, 100% { filter: drop-shadow(0 0 1px #ffaf14); opacity: 0.92; }
+      50% { filter: drop-shadow(0 0 3px #ffd769); opacity: 1; }
     }
 
     @keyframes eggShake {
-      0%, 100% { transform: scale(1.6) rotate(0deg); }
-      15% { transform: scale(1.6) rotate(-14deg); }
-      30% { transform: scale(1.6) rotate(14deg); }
-      45% { transform: scale(1.6) rotate(-8deg); }
-      60% { transform: scale(1.6) rotate(8deg); }
-      75% { transform: scale(1.6) rotate(0deg); }
+      0%, 72%, 100% { transform: scale(2.2) rotate(0deg); }
+      76% { transform: scale(2.25, 2.15) translateY(-3px) rotate(-9deg); }
+      82% { transform: scale(2.15, 2.25) translateY(-1px) rotate(9deg); }
+      88% { transform: scale(2.2) translateY(0) rotate(-4deg); }
+      94% { transform: scale(2.2) translateY(0) rotate(2deg); }
     }
 
     @keyframes eggTremble {
-      0%, 100% { transform: scale(1.65) translate(0, 0); }
-      25% { transform: scale(1.65) translate(-2px, 1px) rotate(-3deg); }
-      75% { transform: scale(1.65) translate(2px, -1px) rotate(3deg); }
+      0%, 100% { transform: scale(2.22) translate(0, 0) rotate(0deg); }
+      20% { transform: scale(2.24, 2.20) translate(-1.5px, 0.5px) rotate(-3deg); }
+      40% { transform: scale(2.20, 2.24) translate(1.5px, -0.5px) rotate(3deg); }
+      60% { transform: scale(2.24, 2.20) translate(-1px, -0.5px) rotate(-2deg); }
+      80% { transform: scale(2.20, 2.24) translate(1px, 0.5px) rotate(2deg); }
     }
 
     /* Sleeping Rest */
@@ -1416,11 +1428,11 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     }
 
     @keyframes eggClickHopAnim {
-      0% { transform: scale(1.6) translateY(0); }
-      35% { transform: scale(1.75, 1.45) translateY(-14px) rotate(8deg); }
-      60% { transform: scale(1.5, 1.7) translateY(-4px) rotate(-6deg); }
-      80% { transform: scale(1.65, 1.55) translateY(0); }
-      100% { transform: scale(1.6) translateY(0); }
+      0% { transform: scale(2.2) translateY(0); }
+      30% { transform: scale(2.45, 1.95) translateY(-16px) rotate(10deg); }
+      55% { transform: scale(2.05, 2.35) translateY(-4px) rotate(-8deg); }
+      75% { transform: scale(2.25, 2.15) translateY(0); }
+      100% { transform: scale(2.2) translateY(0); }
     }
 
     /* Evolution Flash Overlay */
@@ -2919,24 +2931,35 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       setTimeout(() => btn.classList.remove('btn-pressed'), 250);
     }
 
-    // 3. Crisp Pixel Art Mystery Egg Renderer
+    // 3. Authentic Pixel Art Mystery Egg (Yoshi Egg Design)
+    const EGG_PIXEL_BASE = '<path fill="#5A5242" d="M14 2h4v1h-4zM12 3h2v1h-2zM18 3h2v1h-2zM10 4h2v1h-2zM20 4h2v1h-2zM9 5h1v1h-1zM22 5h1v1h-1zM5 8h1v1h-1zM26 8h1v1h-1zM27 10h1v1h-1zM3 12h1v1h-1zM28 12h1v1h-1zM2 15h1v1h-1zM29 15h1v1h-1z"/><path fill="#FFFFFF" d="M14 3h4v1h-4zM12 4h8v1h-8zM11 5h10v1h-10zM11 6h10v1h-10zM12 7h8v1h-8z"/><path fill="#CEBD84" d="M10 5h1v1h-1zM21 5h1v1h-1zM6 8h1v1h-1zM25 8h1v1h-1zM3 19h1v1h-1zM28 19h1v1h-1zM4 22h1v1h-1zM27 22h1v1h-1zM5 23h4v1h-4zM5 24h2v1h-2zM11 24h2v1h-2zM19 24h4v1h-4zM26 24h1v1h-1zM6 25h1v1h-1zM12 25h14v1h-14zM13 26h12v1h-12zM13 27h11v1h-11zM13 28h9v1h-9zM12 29h8v1h-8z"/><path fill="#181818" d="M8 6h1v1h-1zM23 6h1v1h-1zM7 7h1v1h-1zM24 7h1v1h-1zM5 9h1v1h-1zM26 9h1v1h-1zM4 10h1v1h-1zM4 11h1v1h-1zM27 11h1v1h-1zM3 13h1v1h-1zM28 13h1v1h-1zM3 14h1v1h-1zM28 14h1v1h-1zM2 16h1v1h-1zM29 16h1v1h-1zM2 17h1v1h-1zM29 17h1v1h-1zM2 18h1v1h-1zM29 18h1v1h-1zM2 19h1v1h-1zM29 19h1v1h-1zM3 20h1v1h-1zM28 20h1v1h-1zM3 21h1v1h-1zM28 21h1v1h-1zM3 22h1v1h-1zM28 22h1v1h-1zM4 23h1v1h-1zM27 23h1v1h-1zM4 24h1v1h-1zM27 24h1v1h-1zM5 25h1v1h-1zM26 25h1v1h-1zM6 26h1v1h-1zM25 26h1v1h-1zM7 27h1v1h-1zM24 27h1v1h-1zM8 28h2v1h-2zM22 28h2v1h-2zM10 29h2v1h-2zM20 29h2v1h-2zM12 30h8v1h-8z"/><path fill="#FFF7DE" d="M9 6h2v1h-2zM21 6h2v1h-2zM8 7h4v1h-4zM20 7h4v1h-4zM7 8h18v1h-18zM6 9h20v1h-20zM8 10h18v1h-18zM9 11h18v1h-18zM10 12h17v1h-17zM11 13h6v1h-6zM20 13h8v1h-8zM11 14h5v1h-5zM20 14h8v1h-8zM11 15h5v1h-5zM20 15h3v1h-3zM26 15h2v1h-2zM10 16h6v1h-6zM19 16h3v1h-3zM27 16h1v1h-1zM9 17h12v1h-12zM27 17h1v1h-1zM4 18h17v1h-17zM4 19h16v1h-16zM4 20h16v1h-16zM5 21h15v1h-15zM7 22h14v1h-14zM11 23h10v1h-10z"/><path fill="#9CCE84" d="M5 10h2v1h-2zM5 11h4v1h-4zM4 12h6v1h-6zM4 13h7v1h-7zM17 13h2v1h-2zM4 14h7v1h-7zM16 14h4v1h-4zM3 15h7v1h-7zM16 15h4v1h-4zM24 15h1v1h-1zM3 16h7v1h-7zM17 16h2v1h-2zM22 16h4v1h-4zM5 17h3v1h-3zM22 17h5v1h-5zM21 18h6v1h-6zM21 19h7v1h-7zM21 20h7v1h-7zM21 21h6v1h-6zM21 22h4v1h-4z"/><path fill="#CEE7B5" d="M7 10h1v1h-1zM19 13h1v1h-1zM10 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM16 16h1v1h-1zM26 16h1v1h-1zM4 17h1v1h-1zM8 17h1v1h-1zM21 17h1v1h-1zM27 18h1v1h-1zM20 19h1v1h-1zM20 20h1v1h-1zM20 21h1v1h-1z"/><path fill="#E7DEB5" d="M26 10h1v1h-1zM27 12h1v1h-1zM28 15h1v1h-1zM28 16h1v1h-1zM3 17h1v1h-1zM28 17h1v1h-1zM3 18h1v1h-1zM28 18h1v1h-1zM4 21h1v1h-1zM5 22h2v1h-2zM9 23h2v1h-2zM21 23h1v1h-1zM13 24h6v1h-6z"/><path fill="#84B56B" d="M27 21h1v1h-1zM25 22h2v1h-2zM22 23h5v1h-5zM8 24h2v1h-2zM23 24h3v1h-3zM7 25h5v1h-5zM7 26h5v1h-5zM8 27h5v1h-5zM10 28h3v1h-3z"/><path fill="#ADBD7B" d="M7 24h1v1h-1zM10 24h1v1h-1zM12 26h1v1h-1z"/>';
+    const EGG_CRACK_STAGE1 = '<path fill="#FFFFEB" d="M16 6h1v1h-1zM16 7h1v1h-1zM15 8h1v1h-1zM15 9h1v1h-1zM14 10h1v1h-1zM15 11h1v1h-1zM14 12h1v1h-1zM14 13h1v1h-1z"/><path fill="#1C1610" d="M15 6h1v1h-1zM15 7h1v1h-1zM14 8h1v1h-1zM14 9h1v1h-1zM13 10h1v1h-1zM14 11h1v1h-1zM13 12h1v1h-1zM13 13h1v1h-1z"/><path fill="#FFD750" d="M14 9h1v1h-1z"/>';
+    const EGG_CRACK_STAGE2 = '<g class="egg-fracture-glow"><path fill="#FFFFEB" d="M16 3h1v1h-1zM16 5h1v1h-1zM18 6h1v1h-1zM17 7h1v1h-1zM18 8h1v1h-1zM16 9h1v1h-1zM16 10h1v1h-1zM16 11h1v1h-1zM16 12h1v1h-1zM14 13h1v1h-1zM15 14h1v1h-1zM14 15h1v1h-1zM14 16h1v1h-1zM14 4h1v1h-1zM14 5h1v1h-1zM13 7h1v1h-1zM12 8h1v1h-1zM12 9h1v1h-1zM11 10h1v1h-1zM11 11h1v1h-1zM12 12h1v1h-1z"/><path fill="#1C140E" d="M15 4h1v1h-1zM16 4h1v1h-1zM15 5h1v1h-1zM15 6h1v1h-1zM17 6h1v1h-1zM14 7h1v1h-1zM16 7h1v1h-1zM13 8h1v1h-1zM16 8h1v1h-1zM17 8h1v1h-1zM13 9h1v1h-1zM15 9h1v1h-1zM12 10h1v1h-1zM15 10h1v1h-1zM12 11h1v1h-1zM14 11h1v1h-1zM15 11h1v1h-1zM13 12h1v1h-1zM15 12h1v1h-1zM13 13h1v1h-1zM14 14h1v1h-1zM13 15h1v1h-1z"/><path fill="#FFB919" d="M15 6h1v1h-1zM15 7h1v1h-1zM14 8h1v1h-1zM15 8h1v1h-1zM14 9h1v1h-1zM13 10h1v1h-1zM14 10h1v1h-1zM13 11h1v1h-1zM14 12h1v1h-1z"/><path fill="#FFFAAF" d="M15 7h1v1h-1zM14 8h1v1h-1zM14 9h1v1h-1zM13 10h1v1h-1zM14 11h1v1h-1z"/></g>';
+
     function renderEggSVG(progress, required) {
-      const isCracking = progress >= 1;
-      const crackClass = isCracking ? 'egg-cracking' : 'egg-wobble';
-      const crackSvg = isCracking
-        ? '<path d="M 16 5 L 14 12 L 18 18 L 13 24 L 17 30" stroke="#f59e0b" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="drop-shadow(0 0 3px #fbbf24)"/>'
-        : '';
+      const req = required || 2;
+      const isReadyToHatch = progress >= req;
+      const isIncubating = progress >= 1 && !isReadyToHatch;
+
+      let crackSvg = '';
+      let crackClass = 'egg-wobble';
+
+      if (isReadyToHatch) {
+        crackSvg = EGG_CRACK_STAGE2;
+        crackClass = 'egg-cracking';
+      } else if (isIncubating) {
+        crackSvg = EGG_CRACK_STAGE1;
+        crackClass = 'egg-wobble';
+      }
+
       return '<div class="pokemon-egg-container ' + crackClass + '">' +
-        '<svg viewBox="0 0 32 38" class="pokemon-egg-svg" width="40" height="46">' +
-          '<path d="M 16 3 C 8 3, 3 14, 3 24 C 3 32, 9 36, 16 36 C 23 36, 29 32, 29 24 C 29 14, 24 3, 16 3 Z" fill="#fef3c7" stroke="#0f172a" stroke-width="2.2" stroke-linejoin="round"/>' +
-          '<ellipse cx="11" cy="18" rx="4.5" ry="5.5" fill="#10b981" stroke="#047857" stroke-width="1.2"/>' +
-          '<ellipse cx="22" cy="25" rx="3.5" ry="4.5" fill="#10b981" stroke="#047857" stroke-width="1.2"/>' +
-          '<ellipse cx="19" cy="11" rx="3" ry="3.5" fill="#10b981" stroke="#047857" stroke-width="1.2"/>' +
-          '<path d="M 8 10 Q 12 6 16 8" stroke="#ffffff" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
+        '<svg viewBox="0 0 32 32" class="pokemon-egg-svg" width="32" height="32" shape-rendering="crispEdges">' +
+          EGG_PIXEL_BASE +
           crackSvg +
         '</svg>' +
       '</div>';
     }
+
 
     const SPRITE_FRAME_SIZES = {
       bayleef: 48,
