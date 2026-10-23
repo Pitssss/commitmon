@@ -238,12 +238,13 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
   public async setActivePokemon(slugOrId: string) {
     const state = this.getState();
     const species = POKEDEX_ROSTER.find((p) => p.slug === slugOrId || p.id === slugOrId);
+    const targetSlug = species ? species.slug : slugOrId;
+    const oldActive = state.activePokemonSlug;
     if (species) {
       state.activePokemonId = species.id;
       state.activePokemonName = species.name;
       state.activePokemonSlug = species.slug;
       state.activePokemonColor = species.color;
-      state.walkingParty = [species.slug];
       state.hasWings = !!species.hasWings;
       state.flyMode = !!species.hasWings;
       state.isSleeping = false;
@@ -251,8 +252,19 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       state.activePokemonSlug = slugOrId;
       state.activePokemonId = slugOrId;
       state.activePokemonName = slugOrId.charAt(0).toUpperCase() + slugOrId.slice(1);
-      state.walkingParty = [slugOrId];
       state.isSleeping = false;
+    }
+
+    if (!state.walkingParty || state.walkingParty.length === 0) {
+      state.walkingParty = [targetSlug];
+    } else {
+      const idx = state.walkingParty.indexOf(oldActive);
+      if (idx !== -1) {
+        state.walkingParty[idx] = targetSlug;
+      } else if (!state.walkingParty.includes(targetSlug)) {
+        state.walkingParty.unshift(targetSlug);
+      }
+      state.walkingParty = Array.from(new Set(state.walkingParty)).slice(0, 6);
     }
     await this.saveState(state);
   }
@@ -330,7 +342,17 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         state.activePokemonSlug = evo.slug;
         state.activePokemonName = evo.name;
         state.activePokemonId = evo.slug;
-        state.walkingParty = [evo.slug];
+        if (!state.walkingParty || state.walkingParty.length === 0) {
+          state.walkingParty = [evo.slug];
+        } else {
+          const idx = state.walkingParty.indexOf(oldSlug);
+          if (idx !== -1) {
+            state.walkingParty[idx] = evo.slug;
+          } else if (!state.walkingParty.includes(evo.slug)) {
+            state.walkingParty.unshift(evo.slug);
+          }
+          state.walkingParty = Array.from(new Set(state.walkingParty)).slice(0, 6);
+        }
         const evoSpecies = POKEDEX_ROSTER.find((p) => p.id === evo.slug);
         state.hasWings = !!evoSpecies?.hasWings;
         if (state.hasWings) {
@@ -413,7 +435,17 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         state.activePokemonSlug = evo.slug;
         state.activePokemonName = evo.name;
         state.activePokemonId = evo.slug;
-        state.walkingParty = [evo.slug];
+        if (!state.walkingParty || state.walkingParty.length === 0) {
+          state.walkingParty = [evo.slug];
+        } else {
+          const idx = state.walkingParty.indexOf(oldSlug);
+          if (idx !== -1) {
+            state.walkingParty[idx] = evo.slug;
+          } else if (!state.walkingParty.includes(evo.slug)) {
+            state.walkingParty.unshift(evo.slug);
+          }
+          state.walkingParty = Array.from(new Set(state.walkingParty)).slice(0, 6);
+        }
         const evoSpecies = POKEDEX_ROSTER.find((p) => p.id === evo.slug);
         state.hasWings = !!evoSpecies?.hasWings;
         if (state.hasWings) {
@@ -535,7 +567,17 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       state.activePokemonSlug = evo.slug;
       state.activePokemonName = evo.name;
       state.activePokemonId = evo.slug;
-      state.walkingParty = [evo.slug];
+      if (!state.walkingParty || state.walkingParty.length === 0) {
+        state.walkingParty = [evo.slug];
+      } else {
+        const idx = state.walkingParty.indexOf(oldSlug);
+        if (idx !== -1) {
+          state.walkingParty[idx] = evo.slug;
+        } else if (!state.walkingParty.includes(evo.slug)) {
+          state.walkingParty.unshift(evo.slug);
+        }
+        state.walkingParty = Array.from(new Set(state.walkingParty)).slice(0, 6);
+      }
       const evoSpecies = POKEDEX_ROSTER.find((p) => p.id === evo.slug);
       state.hasWings = !!evoSpecies?.hasWings;
       if (state.hasWings) {
@@ -2988,24 +3030,37 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         this.posX = posX;
         this.facingDirection = facingDirection;
         this.vx = 0.52 + Math.random() * 0.3;
+        this.vy = 0;
         this.animTick = Math.floor(Math.random() * 20);
         this.walkFrame = 0;
         this.idleFrame = 0;
+        this.sleepFrame = 0;
         this.specialFrame = 0;
         this.behaviorMode = 'walking';
         this.idleTimer = 0;
         this.isDragging = false;
+        this.justDragged = false;
 
         const lane = getLane(viewportCard.clientHeight || 220);
         this.laneY = lane.min + Math.random() * (lane.max - lane.min);
         this.targetLaneY = this.laneY;
 
-        const flyingSlugs = ['charizard', 'charizard-shiny', 'togekiss', 'togetic', 'aerodactyl', 'lugia'];
-        this.hasWings = flyingSlugs.includes(slug) || (isPrimary && currentState && currentState.flyMode && currentState.hasWings);
-        this.flyAltitude = (this.hasWings && (Math.random() > 0.45 || (isPrimary && currentState && currentState.flyMode))) ? (22 + Math.random() * 20) : 0;
-        this.posY = this.laneY + this.flyAltitude;
+        this.updateSpeciesConfig();
+        this.posY = this.laneY + (this.flyAltitude || 0);
 
         this.createElement();
+      }
+
+      updateSpeciesConfig() {
+        const flyingSlugs = ['charizard', 'charizard-shiny', 'dragonite', 'rayquaza', 'mew', 'mewtwo', 'togekiss', 'togetic', 'aerodactyl', 'lugia'];
+        this.hasWings = flyingSlugs.includes(this.slug) || (this.isPrimary && currentState && currentState.flyMode && currentState.hasWings);
+        if (this.hasWings) {
+          if (!this.flyAltitude) {
+            this.flyAltitude = (Math.random() > 0.4 || (this.isPrimary && currentState && currentState.flyMode)) ? (22 + Math.random() * 20) : 0;
+          }
+        } else {
+          this.flyAltitude = 0;
+        }
       }
 
       createElement() {
@@ -3052,73 +3107,193 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         this.shadowEl.style.left = Math.round(this.posX + (this.frameSize - 28) / 2) + 'px';
         this.shadowEl.style.bottom = Math.round(this.laneY - 2) + 'px';
 
-        this.wrapper.addEventListener('click', (e) => {
-          if (this.isDragging) return;
-          e.stopPropagation();
-          this.triggerSkill();
-        });
+        let isMouseDown = false;
+        let startClientX = 0;
+        let startClientY = 0;
+        let initialPosX = 0;
+        let initialPosY = 0;
+        let hasMoved = false;
 
         this.wrapper.addEventListener('mousedown', (e) => {
-          this.isDragging = true;
-          this.dragStartX = e.clientX;
-          this.dragStartY = e.clientY;
-          this.initialX = this.posX;
-          this.initialY = this.posY;
+          isMouseDown = true;
+          hasMoved = false;
+          startClientX = e.clientX;
+          startClientY = e.clientY;
+          initialPosX = this.posX;
+          initialPosY = this.posY;
         });
 
-        window.addEventListener('mousemove', (e) => {
-          if (!this.isDragging) return;
-          const dx = e.clientX - this.dragStartX;
-          const dy = e.clientY - this.dragStartY;
-          this.posX = this.initialX + dx;
-          this.posY = Math.max(0, this.initialY - dy);
-          this.wrapper.style.left = Math.round(this.posX) + 'px';
-          this.wrapper.style.bottom = Math.round(this.posY) + 'px';
-        });
-
-        window.addEventListener('mouseup', () => {
-          if (this.isDragging) {
-            this.isDragging = false;
-            const lane = getLane(viewportCard.clientHeight || 220);
-            this.laneY = this.targetLaneY = Math.min(Math.max(this.posY, lane.min), lane.max);
+        this.onMouseMove = (e) => {
+          if (!isMouseDown) return;
+          const dx = e.clientX - startClientX;
+          const dy = e.clientY - startClientY;
+          if (!hasMoved && Math.hypot(dx, dy) > 4) {
+            hasMoved = true;
+            this.isDragging = true;
           }
+          if (hasMoved) {
+            this.posX = initialPosX + dx;
+            this.posY = Math.max(0, initialPosY - dy);
+            this.wrapper.style.left = Math.round(this.posX) + 'px';
+            this.wrapper.style.bottom = Math.round(this.posY) + 'px';
+            this.shadowEl.style.left = Math.round(this.posX + (this.frameSize - 28) / 2) + 'px';
+            const lane = getLane(viewportCard.clientHeight || 220);
+            this.shadowEl.style.bottom = Math.round(lane.min - 2) + 'px';
+          }
+        };
+
+        this.onMouseUp = (e) => {
+          if (!isMouseDown) return;
+          isMouseDown = false;
+          if (hasMoved) {
+            this.isDragging = false;
+            this.justDragged = true;
+            setTimeout(() => { this.justDragged = false; }, 200);
+
+            const lane = getLane(viewportCard.clientHeight || 220);
+            if (currentState && currentState.antiGravity) {
+              const dx = e.clientX - startClientX;
+              const dy = -(e.clientY - startClientY);
+              this.vx = Math.max(-3, Math.min(3, dx * 0.12)) || 0.8;
+              this.vy = Math.max(-3, Math.min(3, dy * 0.12));
+              this.facingDirection = this.vx >= 0 ? 1 : -1;
+              playChime('hop');
+              spawnParticle('🌀', this.posX + this.frameSize / 2, this.posY + this.frameSize / 2);
+            } else {
+              this.laneY = this.targetLaneY = Math.min(Math.max(this.posY, lane.min), lane.max);
+            }
+          }
+        };
+
+        window.addEventListener('mousemove', this.onMouseMove);
+        window.addEventListener('mouseup', this.onMouseUp);
+
+        this.wrapper.addEventListener('click', (e) => {
+          if (hasMoved || this.isDragging || this.justDragged) return;
+          e.stopPropagation();
+          if (currentState && currentState.isSleeping) {
+            spawnParticle('💤', this.posX + this.frameSize / 2, this.posY + this.frameSize + 4);
+            playChime('hop');
+            return;
+          }
+          this.triggerSkill();
         });
       }
 
-      update(stageW, lane) {
+      update(stageW, stageH, lane) {
         if (this.isDragging) return;
 
         this.animTick++;
 
-        // Wander up/down the lane
+        let row = 8;
+        let col = 0;
+
+        if (currentState && currentState.isSleeping) {
+          // Stay completely put in place while sleeping!
+          row = 11;
+          if (this.animTick % 32 === 0) {
+            this.sleepFrame = (this.sleepFrame + 1) % 2;
+          }
+          col = this.sleepFrame; // Always 0 or 1, avoiding blank frames
+
+          // If was airborne, smoothly descend to the ground lane once and stay firmly put
+          const pathBaseY = this.laneY;
+          if (this.posY > pathBaseY) {
+            this.posY = Math.max(pathBaseY, this.posY - 1.2);
+          } else {
+            this.posY = pathBaseY;
+          }
+
+          // Gentle floating Zzz particles right above the sleeping Pokémon
+          if (this.animTick % 120 === 0 && Math.random() < 0.45) {
+            spawnParticle('💤', this.posX + this.frameSize / 2, this.posY + this.frameSize + 2);
+          }
+
+          // Apply styles and return early so NO movement, wandering, or boundary turning runs!
+          this.spriteEl.style.backgroundPosition = -(col * this.frameSize) + 'px ' + -(row * this.frameSize) + 'px';
+          this.wrapper.style.left = Math.round(this.posX) + 'px';
+          this.wrapper.style.bottom = Math.round(this.posY) + 'px';
+          this.wrapper.style.zIndex = String(10 + Math.round(1000 - this.posY));
+
+          this.shadowEl.style.left = Math.round(this.posX + (this.frameSize - 28) / 2) + 'px';
+          this.shadowEl.style.bottom = Math.round(pathBaseY - 2) + 'px';
+          this.shadowEl.style.zIndex = String(9 + Math.round(1000 - this.posY));
+          this.shadowEl.style.opacity = '0.55';
+          this.shadowEl.style.transform = 'scale(1)';
+          return;
+        }
+
+        // Wander up/down the lane when walking normally
         if (this.animTick % 180 === 0 && Math.random() < 0.5) {
           this.targetLaneY = lane.min + Math.random() * (lane.max - lane.min);
         }
         this.laneY += (this.targetLaneY - this.laneY) * 0.02;
         const pathBaseY = this.laneY;
 
-        let row = 8;
-        let col = 0;
+        if (this.behaviorMode === 'skill') {
+          row = 9;
+          // Handle sprites that have fewer frames in row 9 (dragonite: 3 frames [0,1,2], rayquaza: [0,1,3])
+          if (this.slug === 'dragonite') {
+            if (this.animTick % 6 === 0) {
+              this.specialFrame = (this.specialFrame + 1) % 3;
+            }
+            col = this.specialFrame;
+          } else if (this.slug === 'rayquaza') {
+            if (this.animTick % 6 === 0) {
+              this.specialFrame = (this.specialFrame + 1) % 3;
+            }
+            const rqFrames = [0, 1, 3];
+            col = rqFrames[this.specialFrame];
+          } else {
+            if (this.animTick % 6 === 0) {
+              this.specialFrame = (this.specialFrame + 1) % 4;
+            }
+            col = this.specialFrame;
+          }
+          // Preserve stable position during skill move
+          if (this.flyAltitude > 0) {
+            this.posY = pathBaseY + this.flyAltitude;
+          } else {
+            this.posY = pathBaseY;
+          }
+        } else if (currentState && currentState.antiGravity) {
+          // Zero-G drifting physics
+          this.posX += (this.vx || 0.8) * 1.4 * this.facingDirection;
+          this.vy = this.vy || (Math.random() - 0.5) * 1.5;
+          this.posY += this.vy * 1.4;
 
-        if (currentState && currentState.isSleeping) {
-          row = 11;
-          if (this.animTick % 32 === 0) {
-            this.walkFrame = (this.walkFrame + 1) % 2;
+          const sh = stageH || 220;
+          if (this.posX < 8) {
+            this.posX = 8;
+            this.facingDirection = 1;
+            this.vx = Math.abs(this.vx || 0.8);
+          }
+          if (this.posX > stageW - this.frameSize - 8) {
+            this.posX = stageW - this.frameSize - 8;
+            this.facingDirection = -1;
+            this.vx = Math.abs(this.vx || 0.8);
+          }
+          if (this.posY < lane.min) {
+            this.posY = lane.min;
+            this.vy = Math.abs(this.vy || 0.8);
+          }
+          if (this.posY > sh - this.frameSize - 10) {
+            this.posY = sh - this.frameSize - 10;
+            this.vy = -Math.abs(this.vy || 0.8);
+          }
+
+          row = this.facingDirection === 1 ? 2 : 6;
+          if (this.animTick % 6 === 0) {
+            this.walkFrame = (this.walkFrame + 1) % 4;
           }
           col = this.walkFrame;
-          this.posY = pathBaseY;
-        } else if (this.behaviorMode === 'skill') {
-          row = 9;
-          if (this.animTick % 6 === 0) {
-            this.specialFrame = (this.specialFrame + 1) % 4;
-          }
-          col = this.specialFrame;
         } else if (this.behaviorMode === 'idle') {
           row = 8;
           if (this.animTick % 16 === 0) {
             this.idleFrame = (this.idleFrame + 1) % 4;
           }
           col = this.idleFrame;
+          this.posY = pathBaseY;
           this.idleTimer--;
           if (this.idleTimer <= 0) {
             this.behaviorMode = 'walking';
@@ -3132,7 +3307,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           this.posX += this.vx * this.facingDirection * 0.72;
           this.posY = pathBaseY + this.flyAltitude + Math.sin(this.animTick * 0.08) * 3;
         } else {
-          // Ground walk: Row 2 (right), Row 6 (left) - Genuine authentic 4-frame walk cycle
+          // Ground walk: Row 2 (right), Row 6 (left)
           row = this.facingDirection === 1 ? 2 : 6;
           if (this.animTick % 8 === 0) {
             this.walkFrame = (this.walkFrame + 1) % 4;
@@ -3142,12 +3317,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           this.posX += this.vx * this.facingDirection * 0.68;
           this.posY = pathBaseY;
 
-          // Gentle snow footstep puffs
           if (this.animTick % 16 === 0 && typeof spawnSnowPuff === 'function') {
             spawnSnowPuff(this.posX + (this.facingDirection === 1 ? 12 : this.frameSize - 12), pathBaseY + 2);
           }
 
-          // Random idle pause
           if (Math.random() < 0.002) {
             this.behaviorMode = 'idle';
             this.idleTimer = 40 + Math.floor(Math.random() * 50);
@@ -3171,15 +3344,16 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
         this.spriteEl.style.backgroundPosition = -(col * this.frameSize) + 'px ' + -(row * this.frameSize) + 'px';
         this.wrapper.style.left = Math.round(this.posX) + 'px';
         this.wrapper.style.bottom = Math.round(this.posY) + 'px';
-        this.wrapper.style.zIndex = String(10 + Math.round(1000 - this.posY));    // lower on screen = in front
+        this.wrapper.style.zIndex = String(10 + Math.round(1000 - this.posY));
 
         // Shadow
         this.shadowEl.style.left = Math.round(this.posX + (this.frameSize - 28) / 2) + 'px';
         this.shadowEl.style.bottom = Math.round(pathBaseY - 2) + 'px';
         this.shadowEl.style.zIndex = String(9 + Math.round(1000 - this.posY));
-        if (this.flyAltitude > 0) {
-          this.shadowEl.style.opacity = '0.35';
-          this.shadowEl.style.transform = 'scale(0.85)';
+        if (this.flyAltitude > 0 || (currentState && currentState.antiGravity)) {
+          const alt = Math.max(0, this.posY - pathBaseY);
+          this.shadowEl.style.opacity = String(Math.max(0.15, 0.55 - alt * 0.005));
+          this.shadowEl.style.transform = 'scale(' + Math.max(0.4, 1 - alt * 0.008) + ')';
         } else {
           this.shadowEl.style.opacity = '0.55';
           this.shadowEl.style.transform = 'scale(1)';
@@ -3211,6 +3385,8 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       }
 
       destroy() {
+        if (this.onMouseMove) window.removeEventListener('mousemove', this.onMouseMove);
+        if (this.onMouseUp) window.removeEventListener('mouseup', this.onMouseUp);
         if (this.wrapper) this.wrapper.remove();
         if (this.shadowEl) this.shadowEl.remove();
       }
@@ -3219,12 +3395,11 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     function syncWalkers() {
       if (!currentState) return;
 
-      activeWalkers.forEach(w => w.destroy());
-      activeWalkers = [];
-
       const petWrapperEl = document.getElementById('petWrapper');
 
       if (!currentState.isEggHatched) {
+        activeWalkers.forEach(w => w.destroy());
+        activeWalkers = [];
         if (petWrapperEl) petWrapperEl.style.display = 'flex';
         updatePetSpriteView();
         return;
@@ -3246,13 +3421,36 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       const count = party.length;
       const spacing = Math.max(36, Math.min(90, (stageW - 100) / Math.max(1, count)));
 
+      // Reconcile existing walkers to prevent teleporting/flickering glitches
+      const currentMap = new Map();
+      activeWalkers.forEach(w => {
+        if (!currentMap.has(w.slug)) {
+          currentMap.set(w.slug, w);
+        } else {
+          w.destroy();
+        }
+      });
+
+      const nextWalkers = [];
       party.forEach((slug, idx) => {
         const isPrimary = (slug === currentState.activePokemonSlug);
-        const startX = 24 + idx * spacing;
-        const dir = (idx % 2 === 0) ? 1 : -1;
-        const walker = new Walker(slug, startX, dir, isPrimary);
-        activeWalkers.push(walker);
+        let walker = currentMap.get(slug);
+        if (walker) {
+          walker.isPrimary = isPrimary;
+          walker.updateSpeciesConfig();
+          currentMap.delete(slug);
+          nextWalkers.push(walker);
+        } else {
+          const startX = Math.min(stageW - 60, Math.max(20, 24 + idx * spacing));
+          const dir = (idx % 2 === 0) ? 1 : -1;
+          const newW = new Walker(slug, startX, dir, isPrimary);
+          nextWalkers.push(newW);
+        }
       });
+
+      // Destroy walkers no longer in party
+      currentMap.forEach(w => w.destroy());
+      activeWalkers = nextWalkers;
     }
 
     // 4. Dedicated Multi-Frame Sprite Frame Cycle & View
@@ -3357,7 +3555,7 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
           syncWalkers();
         }
         if (activeWalkers.length > 0) {
-          activeWalkers.forEach(w => w.update(stageW, lane));
+          activeWalkers.forEach(w => w.update(stageW, stageH, lane));
           requestAnimationFrame(animatePhysics);
           return;
         }
@@ -3366,13 +3564,14 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       if (isDragging) {
         // Handled by pointer events
       } else if (currentState.isSleeping) {
-        // Sleeping - egg rests peacefully in the lane
+        // Sleeping - egg rests peacefully in place without jumping
         if (!currentState.isEggHatched) {
-          posX = (stageW / 2) - 24;
-          posY = Math.round((lane.min + lane.max) / 2);
           petWrapper.style.left = Math.round(posX) + 'px';
           petWrapper.style.bottom = Math.round(posY) + 'px';
-          petWrapper.style.transform = 'rotate(14deg) scale(0.95)';
+          petWrapper.style.transform = 'rotate(12deg) scale(0.96)';
+          petShadow.style.bottom = '-2px';
+          petShadow.style.transform = 'scale(1)';
+          petShadow.style.opacity = '0.55';
         } else {
           petWrapper.style.left = posX + 'px';
           petWrapper.style.bottom = '24px';
@@ -3595,9 +3794,9 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       }
     }, 2800);
 
-    // Floating Sleep Zzz particles
+    // Floating Sleep Zzz particles for Egg
     setInterval(() => {
-      if (currentState && currentState.isSleeping) {
+      if (currentState && currentState.isSleeping && !currentState.isEggHatched) {
         spawnParticle('💤', posX + 16, posY + 26);
       }
     }, 2000);
@@ -3607,8 +3806,10 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       const p = document.createElement('div');
       p.className = 'particle';
       p.innerText = text;
-      p.style.left = (x !== undefined ? x : posX + 16) + 'px';
-      p.style.bottom = (y !== undefined ? y : posY + 20) + 'px';
+      const defX = (activeWalkers.length > 0 ? (activeWalkers[0].posX + activeWalkers[0].frameSize / 2 - 8) : (posX + 16));
+      const defY = (activeWalkers.length > 0 ? (activeWalkers[0].posY + activeWalkers[0].frameSize) : (posY + 20));
+      p.style.left = (x !== undefined ? x : defX) + 'px';
+      p.style.bottom = (y !== undefined ? y : defY) + 'px';
       p.style.setProperty('--tx', (Math.random() * 24 - 12) + 'px');
       p.style.setProperty('--ty', (-20 - Math.random() * 20) + 'px');
       petStage.appendChild(p);
@@ -3740,9 +3941,9 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
     }
 
     function spawnSkillFX(type, customX, customY, customDir) {
-      const centerX = customX !== undefined ? customX : posX + 24;
-      const centerY = customY !== undefined ? customY : posY + 20;
-      const dir = customDir !== undefined ? customDir : dir;
+      const centerX = customX !== undefined ? customX : (activeWalkers.length > 0 ? (activeWalkers[0].posX + 24) : posX + 24);
+      const centerY = customY !== undefined ? customY : (activeWalkers.length > 0 ? (activeWalkers[0].posY + 20) : posY + 20);
+      const dir = customDir !== undefined ? customDir : (typeof facingDirection !== 'undefined' ? facingDirection : 1);
 
       if (type === 'electric') {
         for (let i = 0; i < 4; i++) {
@@ -3904,6 +4105,16 @@ export class CompanionViewProvider implements vscode.WebviewViewProvider {
       if (isDragging) return;
       e.stopPropagation();
       activatePokemonSkill();
+    });
+
+    petStage.addEventListener('click', (e) => {
+      // If clicked on empty stage background, trigger active companion cheer
+      if (e.target === petStage || e.target === bgCanvas || e.target === snowCanvas) {
+        if (activeWalkers.length > 0) {
+          const primary = activeWalkers.find(w => w.isPrimary) || activeWalkers[0];
+          if (primary) primary.cheer();
+        }
+      }
     });
 
     // Interactive Drag & Toss in Anti-Gravity
